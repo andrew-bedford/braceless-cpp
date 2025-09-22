@@ -11,6 +11,9 @@ use processor::FileProcessor;
 #[command(name = "braceless")]
 #[command(about = "A preprocessor for braceless C/C++ syntax")]
 struct Cli {
+    #[arg(long, help = "Remove temporary .cpp files after compilation")]
+    clean: bool,
+
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     args: Vec<String>,
 }
@@ -32,7 +35,9 @@ fn main() {
 
             let result = cmd.status();
 
-            processor.cleanup();
+            if cli.clean {
+                processor.cleanup();
+            }
 
             match result {
                 Ok(status) => {
