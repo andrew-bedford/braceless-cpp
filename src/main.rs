@@ -3,7 +3,6 @@ use std::process::{self, Command};
 
 mod parser;
 mod processor;
-mod compiler;
 
 use processor::FileProcessor;
 
