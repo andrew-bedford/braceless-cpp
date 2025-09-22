@@ -36,3 +36,17 @@ int main() {
 cargo build
 cargo test
 ```
+
+## Why?
+Just a fun experiment to learn about Rust. I don't necessarily think that C/C++ would be better without braces, although it does look nice in some cases.
+
+But also, while I like C/C++, there's many things that I'd like to be different in the language such as:
+ - using `var` instead of `auto` for variable declarations,
+ - using postfix type notations `i:int` like Rust and Pascal
+ - default to smart pointers
+ - default to `const` unless `mut` is used
+ - eliminate undefined behaviours, maybe by enabling lightweight sanitizers by default
+ - a more complete std library
+ - ...
+
+So, what if we introduced more "transformers" like `braceless` that could be chained together so that one could use a variant that they like?
