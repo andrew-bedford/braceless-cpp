@@ -2,6 +2,12 @@ use std::collections::VecDeque;
 
 pub struct BracelessParser;
 
+#[derive(Clone, Copy)]
+enum ScopeType {
+    Regular,
+    Lambda,
+}
+
 impl BracelessParser {
     pub fn new() -> Self {
         Self
@@ -10,7 +16,7 @@ impl BracelessParser {
     pub fn process(&self, content: &str) -> Result<String, Box<dyn std::error::Error>> {
         let lines: Vec<&str> = content.lines().collect();
         let mut result = Vec::new();
-        let mut indent_stack: VecDeque<usize> = VecDeque::new();
+        let mut indent_stack: VecDeque<(usize, ScopeType)> = VecDeque::new();
 
         for (_line_num, line) in lines.iter().enumerate() {
             let trimmed = line.trim();
@@ -23,29 +29,43 @@ impl BracelessParser {
 
             let current_indent = self.get_indent_level(line);
 
-            while let Some(&last_indent) = indent_stack.back() {
+            while let Some(&(last_indent, scope_type)) = indent_stack.back() {
                 if current_indent <= last_indent {
                     indent_stack.pop_back();
-                    result.push(format!("{}}}", " ".repeat(last_indent)));
+                    match scope_type {
+                        ScopeType::Lambda => {
+                            result.push(format!("{}}};", " ".repeat(last_indent)));
+                        }
+                        ScopeType::Regular => {
+                            result.push(format!("{}}}", " ".repeat(last_indent)));
+                        }
+                    }
                 } else {
                     break;
                 }
             }
 
-            if self.should_open_scope(trimmed) {
+            if let Some(scope_type) = self.should_open_scope(trimmed) {
                 let mut new_line = line.to_string();
                 if !new_line.trim_end().ends_with('{') {
                     new_line.push_str(" {");
                 }
                 result.push(new_line);
-                indent_stack.push_back(current_indent);
+                indent_stack.push_back((current_indent, scope_type));
             } else {
                 result.push(line.to_string());
             }
         }
 
-        while let Some(indent) = indent_stack.pop_back() {
-            result.push(format!("{}}}", " ".repeat(indent)));
+        while let Some((indent, scope_type)) = indent_stack.pop_back() {
+            match scope_type {
+                ScopeType::Lambda => {
+                    result.push(format!("{}}};", " ".repeat(indent)));
+                }
+                ScopeType::Regular => {
+                    result.push(format!("{}}}", " ".repeat(indent)));
+                }
+            }
         }
 
         Ok(result.join("\n"))
@@ -55,9 +75,14 @@ impl BracelessParser {
         line.chars().take_while(|&c| c == ' ' || c == '\t').count()
     }
 
-    fn should_open_scope(&self, line: &str) -> bool {
+    fn should_open_scope(&self, line: &str) -> Option<ScopeType> {
         if line.ends_with('{') {
-            return false;
+            return None;
+        }
+
+        // Check for lambda expressions
+        if self.is_lambda(line) {
+            return Some(ScopeType::Lambda);
         }
 
         let keywords = [
@@ -75,6 +100,15 @@ impl BracelessParser {
                          !line.contains("if") && !line.contains("while") &&
                          !line.contains("for") && !line.contains("switch");
 
-        ends_with_paren || ends_with_colon || contains_keyword || is_function
+        if ends_with_paren || ends_with_colon || contains_keyword || is_function {
+            Some(ScopeType::Regular)
+        } else {
+            None
+        }
+    }
+
+    fn is_lambda(&self, line: &str) -> bool {
+        // Check for lambda syntax: contains [] and ends with )
+        line.contains('[') && line.contains(']') && line.ends_with(')')
     }
 }
