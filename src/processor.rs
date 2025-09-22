@@ -16,7 +16,10 @@ impl FileProcessor {
         }
     }
 
-    pub fn process_args(&mut self, args: Vec<String>) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    pub fn process_args(
+        &mut self,
+        args: Vec<String>,
+    ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let mut modified_args = args.clone();
 
         for i in 0..args.len() {
@@ -66,12 +69,19 @@ impl FileProcessor {
         let content = fs::read_to_string(path)
             .map_err(|e| format!("Failed to read file {}: {}", path.display(), e))?;
 
-        let processed_content = self.parser.process(&content)
+        let processed_content = self
+            .parser
+            .process(&content)
             .map_err(|e| format!("Failed to process file {}: {}", path.display(), e))?;
 
         let temp_path = self.create_temp_path(path);
-        fs::write(&temp_path, processed_content)
-            .map_err(|e| format!("Failed to write temporary file {}: {}", temp_path.display(), e))?;
+        fs::write(&temp_path, processed_content).map_err(|e| {
+            format!(
+                "Failed to write temporary file {}: {}",
+                temp_path.display(),
+                e
+            )
+        })?;
 
         Ok(temp_path)
     }
@@ -79,9 +89,10 @@ impl FileProcessor {
     fn create_temp_path(&self, original_path: &Path) -> PathBuf {
         let parent = original_path.parent().unwrap_or(Path::new("."));
         let stem = original_path.file_stem().unwrap().to_string_lossy();
+
         // While clang++ doesn't appear care about the file extension being used, the linker does and
-        // rejects object files created from source files with unknown extensions. So we use .cpp here. 
-        let temp_filename = format!(".{}.cpp", stem); 
+        // rejects object files created from source files with unknown extensions. So we use .cpp here.
+        let temp_filename = format!(".{}.cpp", stem);
 
         parent.join(temp_filename)
     }

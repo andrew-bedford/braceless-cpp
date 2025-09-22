@@ -1,0 +1,25 @@
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int simple_function(int x)
+    if (x > 0)
+        return x * 2;
+    else
+        return 0;
+
+int main()
+    vector<int> numbers;
+
+    auto add_number = [&] (int n)
+        numbers.push_back(n);
+
+    for (int i = 1; i <= 5; i++)
+        add_number(i);
+
+    while (!numbers.empty())
+        cout << numbers.back() << " ";
+        numbers.pop_back();
+
+    cout << endl;
+    return 0;
