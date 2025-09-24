@@ -6,6 +6,7 @@ pub struct BracelessParser;
 enum ScopeType {
     Regular,
     Lambda,
+    Type,
 }
 
 impl BracelessParser {
@@ -21,12 +22,13 @@ impl BracelessParser {
         for (_line_num, line) in lines.iter().enumerate() {
             let trimmed = line.trim();
 
-            // Insert empty lines, preprocessor directives, and comments as-is
+            // Insert empty lines, preprocessor directives, comments, and access specifiers as-is
             if trimmed.is_empty()
                 || trimmed.starts_with('#')
                 || trimmed.starts_with("//")
                 || trimmed.starts_with("using")
                 || trimmed.starts_with("typedef")
+                || trimmed.ends_with(':')
             {
                 result.push(line.to_string());
                 continue;
@@ -39,6 +41,9 @@ impl BracelessParser {
                     indent_stack.pop_back();
                     match scope_type {
                         ScopeType::Lambda => {
+                            result.push(format!("{}}};", " ".repeat(last_indent)));
+                        }
+                        ScopeType::Type => {
                             result.push(format!("{}}};", " ".repeat(last_indent)));
                         }
                         ScopeType::Regular => {
@@ -67,6 +72,9 @@ impl BracelessParser {
                 ScopeType::Lambda => {
                     result.push(format!("{}}};", " ".repeat(indent)));
                 }
+                ScopeType::Type => {
+                    result.push(format!("{}}};", " ".repeat(indent)));
+                }
                 ScopeType::Regular => {
                     result.push(format!("{}}}", " ".repeat(indent)));
                 }
@@ -90,6 +98,16 @@ impl BracelessParser {
             return Some(ScopeType::Lambda);
         }
 
+        // Check for struct, enum, class first (need semicolon)
+        let type_keywords = ["class", "struct", "enum"];
+        let contains_type_keyword = type_keywords
+            .iter()
+            .any(|&kw| line.split_whitespace().any(|word| word == kw));
+        
+        if contains_type_keyword {
+            return Some(ScopeType::Type);
+        }
+
         let keywords = [
             "if",
             "else",
@@ -99,9 +117,6 @@ impl BracelessParser {
             "switch",
             "try",
             "catch",
-            "class",
-            "struct",
-            "enum",
             "namespace",
             "extern",
         ];
@@ -204,13 +219,19 @@ mod tests {
         let class_input = "class MyClass\npublic:\n    void method();";
         let class_result = parser.process(class_input).unwrap();
         assert!(class_result.contains("class MyClass {"));
-        assert!(class_result.contains("}"));
+        assert!(class_result.contains("};"));
 
         // Test struct
         let struct_input = "struct Point\n    int x, y;";
         let struct_result = parser.process(struct_input).unwrap();
         assert!(struct_result.contains("struct Point {"));
-        assert!(struct_result.contains("}"));
+        assert!(struct_result.contains("};"));
+
+        // Test enum
+        let enum_input = "enum Color\n    RED,\n    GREEN,\n    BLUE";
+        let enum_result = parser.process(enum_input).unwrap();
+        assert!(enum_result.contains("enum Color {"));
+        assert!(enum_result.contains("};"));
     }
 
     #[test]

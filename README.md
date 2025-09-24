@@ -4,29 +4,61 @@ An experimental C/C++ preprocessor to show what C/C++ could look like if it used
 ## Usage
 Prefix calls to `clang++` with `braceless` like so:
 ```
-braceless clang++ -c test.bpp
+braceless clang++ tests/integration_test.bpp
 ```
 It will detect the file being compiled (e.g., `test.bpp`), create a hidden copy of it named `.test.cpp` in the same folder as the original source file, and then insert braces based on the indentation before invoking `clang++` on `.test.cpp`. If a file does not have a `.bpp` extension, it is forwarded without any modifications to the compiler.
+
+To automatically clean temporary files, you can use the `--clean` argument:
+```
+braceless --clean clang++ tests/integration_test.bpp
+```
+We do not remove temporary files by default as a debugger would be looking for those generated `.cpp` files.
 
 ## Example
 ```
 #include <iostream>
+#include <vector>
+
+using namespace std;
+
+struct Point
+    int x;
+    int y;
 
 int main()
-    std::cout << "Hello!" << std::endl;
+    cout << "Hello!" << endl;
+
+    vector<int> numbers;
+    auto push_number = [&] (int n)
+        numbers.push_back(n);
+
     for (int i = 0; i < 10; ++i)
-        std::cout << i;
-        std::cout << std::endl;
+        cout << i << endl;
+        push_number(i);
 ```
 Would be converted to:
 ```
 #include <iostream>
+#include <vector>
+
+using namespace std;
+
+struct Point {
+    int x;
+    int y;
+};
 
 int main() {
-    std::cout << "Hello!" << std::endl;
+    cout << "Hello!" << endl;
+
+    vector<int> numbers;
+    auto push_number = [&] (int n) {
+        numbers.push_back(n);
+    };
+
     for (int i = 0; i < 10; ++i) {
-        std::cout << i;
-        std::cout << std::endl;
+        cout << i << endl;
+        push_number(i);
     }
 }
 ```
@@ -35,6 +67,11 @@ int main() {
 ```
 cargo build
 cargo test
+
+# To try it out, you can also use `cargo run`
+cargo run clang++ tests/integration_test.bpp
+# To run the resulting program
+./a.out
 ```
 
 ## Why?
