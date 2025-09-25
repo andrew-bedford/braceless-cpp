@@ -15,7 +15,7 @@ braceless --clean clang++ tests/integration_test.bpp
 We do not remove temporary files by default as a debugger would be looking for those generated `.cpp` files.
 
 ## Example
-```
+```cpp
 #include <iostream>
 #include <vector>
 
@@ -37,7 +37,7 @@ int main()
         push_number(i);
 ```
 Would be converted to:
-```
+```cpp
 #include <iostream>
 #include <vector>
 
@@ -64,7 +64,7 @@ int main() {
 ```
 
 ## Building
-```
+```sh
 cargo build
 cargo test
 
